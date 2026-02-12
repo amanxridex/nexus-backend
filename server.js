@@ -47,6 +47,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/booking', bookingRoutes);
 
+console.log('✅ Routes loaded: /api/auth, /api/users, /api/tickets, /api/booking');
+
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ 
