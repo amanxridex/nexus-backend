@@ -216,3 +216,86 @@ exports.getMyTickets = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch tickets' });
     }
 };
+
+// Verify ticket for host (NEW FUNCTION)
+exports.verifyTicketForHost = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { festId } = req.body;
+        
+        // Get ticket with booking details
+        const { data: ticket, error } = await supabase
+            .from('tickets')
+            .select(`
+                *,
+                bookings (
+                    fest_id,
+                    event_name,
+                    college_name,
+                    payment_status,
+                    ticket_price,
+                    attendee_email,
+                    attendee_phone
+                )
+            `)
+            .eq('ticket_id', ticketId)
+            .single();
+        
+        if (error || !ticket) {
+            return res.status(404).json({ success: false, error: 'Ticket not found' });
+        }
+        
+        // Check if ticket belongs to this fest
+        if (ticket.bookings.fest_id !== festId) {
+            return res.status(403).json({ success: false, error: 'Ticket not for this event' });
+        }
+        
+        // Check payment status
+        if (ticket.bookings.payment_status !== 'completed') {
+            return res.status(400).json({ success: false, error: 'Payment not completed' });
+        }
+        
+        res.json({
+            success: true,
+            ticket: {
+                ticket_id: ticket.ticket_id,
+                attendee_name: ticket.attendee_name,
+                event_name: ticket.bookings.event_name,
+                college_name: ticket.bookings.college_name,
+                is_used: ticket.is_used || false,
+                created_at: ticket.created_at
+            }
+        });
+        
+    } catch (error) {
+        console.error('Verify ticket error:', error);
+        res.status(500).json({ success: false, error: 'Verification failed' });
+    }
+};
+
+// Mark ticket as used (NEW FUNCTION)
+exports.markTicketUsed = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        
+        const { data, error } = await supabase
+            .from('tickets')
+            .update({ 
+                is_used: true, 
+                used_at: new Date().toISOString() 
+            })
+            .eq('ticket_id', ticketId)
+            .select()
+            .single();
+        
+        if (error) {
+            return res.status(500).json({ success: false, error: 'Failed to mark used' });
+        }
+        
+        res.json({ success: true, ticket: data });
+        
+    } catch (error) {
+        console.error('Mark used error:', error);
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+};
