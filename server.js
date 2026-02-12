@@ -15,14 +15,19 @@ const PORT = process.env.PORT || 3000;
 
 // Security middleware
 app.use(helmet());
+
+// CORS - Allow your frontend domain
 app.use(cors({
   origin: [
     'http://localhost:3000', 
-    'http://127.0.0.1:5500', // Live Server
-    'https://your-frontend.vercel.app', // Your Vercel frontend
+    'http://127.0.0.1:5500',
+    'https://reseat.vercel.app', // Your actual frontend
+    'https://your-frontend.vercel.app',
     'https://nexus-app.vercel.app'
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Logging
