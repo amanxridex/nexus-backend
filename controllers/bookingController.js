@@ -8,11 +8,9 @@ const razorpay = new Razorpay({
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-// Generate unique IDs
 const generateBookingId = () => 'NEX' + Date.now().toString(36).toUpperCase();
 const generateTicketId = () => 'TKT' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
-// Create Razorpay order
 exports.createOrder = async (req, res) => {
     try {
         const { festId, eventName, ticketQty, ticketPrice, attendee } = req.body;
@@ -45,11 +43,7 @@ exports.createOrder = async (req, res) => {
             amount: totalAmount * 100,
             currency: 'INR',
             receipt: `booking_${Date.now()}`,
-            notes: {
-                userId,
-                festId,
-                eventName
-            }
+            notes: { userId, festId, eventName }
         });
 
         const bookingId = generateBookingId();
@@ -91,7 +85,6 @@ exports.createOrder = async (req, res) => {
     }
 };
 
-// Verify payment and create tickets
 exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
@@ -119,7 +112,7 @@ exports.verifyPayment = async (req, res) => {
             return res.status(404).json({ error: 'Booking not found' });
         }
 
-        const { error: updateError } = await supabase
+        await supabase
             .from('bookings')
             .update({
                 razorpay_payment_id: razorpay_payment_id,
@@ -127,8 +120,6 @@ exports.verifyPayment = async (req, res) => {
                 updated_at: new Date().toISOString()
             })
             .eq('id', booking.id);
-
-        if (updateError) throw updateError;
 
         const tickets = [];
         for (let i = 0; i < booking.ticket_quantity; i++) {
@@ -175,7 +166,7 @@ exports.verifyPayment = async (req, res) => {
     }
 };
 
-// Get user's tickets - FIXED
+// FIXED: Get user's tickets
 exports.getMyTickets = async (req, res) => {
     try {
         const userId = req.user.uid;
@@ -189,7 +180,7 @@ exports.getMyTickets = async (req, res) => {
                     booking_id,
                     event_name,
                     college_name,
-                    attendee_name as booking_attendee_name,
+                    attendee_name,
                     attendee_email,
                     attendee_phone,
                     created_at
@@ -200,9 +191,18 @@ exports.getMyTickets = async (req, res) => {
 
         if (error) throw error;
 
+        // Rename to avoid conflict
+        const formattedTickets = tickets.map(t => ({
+            ...t,
+            bookings: {
+                ...t.bookings,
+                booking_attendee_name: t.bookings?.attendee_name
+            }
+        }));
+
         res.json({
             success: true,
-            tickets: tickets
+            tickets: formattedTickets
         });
 
     } catch (error) {
@@ -211,7 +211,6 @@ exports.getMyTickets = async (req, res) => {
     }
 };
 
-// Verify ticket for host
 exports.verifyTicketForHost = async (req, res) => {
     try {
         const { ticketId } = req.params;
@@ -264,7 +263,6 @@ exports.verifyTicketForHost = async (req, res) => {
     }
 };
 
-// Mark ticket as used
 exports.markTicketUsed = async (req, res) => {
     try {
         const { ticketId } = req.params;
