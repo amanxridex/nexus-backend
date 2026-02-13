@@ -134,15 +134,15 @@ exports.getTicketById = async (req, res) => {
 exports.markTicketUsed = async (req, res) => {
     try {
         const { ticketId } = req.params;
-        const { used_at } = req.body;
+        const { used_at, scanned_by } = req.body;
         
-        console.log('📝 Marking ticket used:', ticketId);
+        console.log('📝 Marking ticket used:', ticketId, 'by:', scanned_by);
         
         const { data, error } = await supabase
             .from('tickets')
             .update({ 
                 used_at: used_at || new Date().toISOString(),
-                status: 'used'
+                status: 'used'  // ✅ Change status to used
             })
             .eq('ticket_id', ticketId)
             .select()

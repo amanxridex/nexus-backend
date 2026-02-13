@@ -8,7 +8,7 @@ router.get('/', ticketController.getTickets);
 
 // ✅ ADD THESE - For QR Scanner
 router.get('/by-ticket-id/:ticketId', ticketController.getTicketById);
-router.patch('/:ticketId/mark-used', verifyToken, ticketController.markTicketUsed);
+router.patch('/:ticketId/mark-used', ticketController.markTicketUsed);
 
 // Protected routes
 router.post('/', verifyToken, ticketController.createTicket);
