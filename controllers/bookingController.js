@@ -16,14 +16,12 @@ const generateTicketId = () => 'TKT' + Math.random().toString(36).substr(2, 9).t
 exports.createOrder = async (req, res) => {
     try {
         const { festId, eventName, ticketQty, ticketPrice, attendee } = req.body;
-        const userId = req.user.uid; // From Firebase auth middleware
+        const userId = req.user.uid;
 
-        // Validate max tickets
         if (ticketQty > 2) {
             return res.status(400).json({ error: 'Maximum 2 tickets allowed per user' });
         }
 
-        // Check if user already has tickets for this fest
         const { data: existingBookings, error: checkError } = await supabase
             .from('bookings')
             .select('ticket_quantity')
@@ -43,9 +41,8 @@ exports.createOrder = async (req, res) => {
         const platformFee = 1;
         const totalAmount = (ticketQty * ticketPrice) + platformFee;
 
-        // Create Razorpay order
         const order = await razorpay.orders.create({
-            amount: totalAmount * 100, // Razorpay expects paise
+            amount: totalAmount * 100,
             currency: 'INR',
             receipt: `booking_${Date.now()}`,
             notes: {
@@ -55,7 +52,6 @@ exports.createOrder = async (req, res) => {
             }
         });
 
-        // Create pending booking
         const bookingId = generateBookingId();
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
@@ -101,7 +97,6 @@ exports.verifyPayment = async (req, res) => {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
         const userId = req.user.uid;
 
-        // Verify signature
         const crypto = require('crypto');
         const body = razorpay_order_id + '|' + razorpay_payment_id;
         const expectedSignature = crypto
@@ -113,7 +108,6 @@ exports.verifyPayment = async (req, res) => {
             return res.status(400).json({ error: 'Invalid payment signature' });
         }
 
-        // Get booking
         const { data: booking, error: bookingError } = await supabase
             .from('bookings')
             .select('*')
@@ -125,7 +119,6 @@ exports.verifyPayment = async (req, res) => {
             return res.status(404).json({ error: 'Booking not found' });
         }
 
-        // Update booking as completed
         const { error: updateError } = await supabase
             .from('bookings')
             .update({
@@ -137,7 +130,6 @@ exports.verifyPayment = async (req, res) => {
 
         if (updateError) throw updateError;
 
-        // Generate tickets with QR codes
         const tickets = [];
         for (let i = 0; i < booking.ticket_quantity; i++) {
             const ticketId = generateTicketId();
@@ -148,7 +140,6 @@ exports.verifyPayment = async (req, res) => {
                 userId: userId
             });
             
-            // Simple base64 QR (you can use a QR library later)
             const qrCode = Buffer.from(qrData).toString('base64');
 
             const { data: ticket, error: ticketError } = await supabase
@@ -184,8 +175,7 @@ exports.verifyPayment = async (req, res) => {
     }
 };
 
-// Get user's tickets
-// Get user's tickets
+// Get user's tickets - FIXED
 exports.getMyTickets = async (req, res) => {
     try {
         const userId = req.user.uid;
@@ -194,12 +184,12 @@ exports.getMyTickets = async (req, res) => {
             .from('tickets')
             .select(`
                 *,
-                attendee_name,  // ✅ Explicitly include
+                attendee_name,
                 bookings (
                     booking_id,
                     event_name,
                     college_name,
-                    attendee_name as booking_attendee_name,  // ✅ Alias to avoid conflict
+                    attendee_name as booking_attendee_name,
                     attendee_email,
                     attendee_phone,
                     created_at
@@ -221,13 +211,12 @@ exports.getMyTickets = async (req, res) => {
     }
 };
 
-// Verify ticket for host (NEW FUNCTION)
+// Verify ticket for host
 exports.verifyTicketForHost = async (req, res) => {
     try {
         const { ticketId } = req.params;
         const { festId } = req.body;
         
-        // Get ticket with booking details
         const { data: ticket, error } = await supabase
             .from('tickets')
             .select(`
@@ -249,12 +238,10 @@ exports.verifyTicketForHost = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Ticket not found' });
         }
         
-        // Check if ticket belongs to this fest
         if (ticket.bookings.fest_id !== festId) {
             return res.status(403).json({ success: false, error: 'Ticket not for this event' });
         }
         
-        // Check payment status
         if (ticket.bookings.payment_status !== 'completed') {
             return res.status(400).json({ success: false, error: 'Payment not completed' });
         }
@@ -277,7 +264,7 @@ exports.verifyTicketForHost = async (req, res) => {
     }
 };
 
-// Mark ticket as used (NEW FUNCTION)
+// Mark ticket as used
 exports.markTicketUsed = async (req, res) => {
     try {
         const { ticketId } = req.params;
