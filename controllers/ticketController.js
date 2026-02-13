@@ -80,7 +80,10 @@ exports.getTicketById = async (req, res) => {
         
         const { data: ticket, error } = await supabase
             .from('tickets')
-            .select('*, users(name, email)')
+            .select(`
+                *,
+                users:user_id (name, email, full_name)
+            `)
             .eq('ticket_id', ticketId)
             .single();
 
@@ -88,12 +91,21 @@ exports.getTicketById = async (req, res) => {
             return res.status(404).json({ error: 'Ticket not found' });
         }
 
+        // ✅ Return all possible name fields
         res.json({
             ticket_id: ticket.ticket_id,
-            attendee_name: ticket.attendee_name || ticket.users?.name || 'Guest',
+            attendee_name: ticket.attendee_name,  // Main field
+            name: ticket.name,  // Backup
+            user_name: ticket.users?.name,  // From users table
+            user_full_name: ticket.users?.full_name,
             fest_id: ticket.fest_id,
             status: ticket.status,
-            used_at: ticket.used_at
+            used_at: ticket.used_at,
+            // Debug: return raw data
+            _debug: {
+                raw_attendee_name: ticket.attendee_name,
+                user_data: ticket.users
+            }
         });
 
     } catch (error) {
@@ -101,27 +113,34 @@ exports.getTicketById = async (req, res) => {
     }
 };
 
-// Mark ticket as used (after scan)
+// ticketController.js - markTicketUsed function
 exports.markTicketUsed = async (req, res) => {
     try {
         const { ticketId } = req.params;
-        const { used_at, scanned_by } = req.body;
+        const { used_at } = req.body;
+        
+        console.log('Marking ticket used:', ticketId);
         
         const { data, error } = await supabase
             .from('tickets')
             .update({ 
                 used_at: used_at || new Date().toISOString(),
-                status: 'used'
+                status: 'used'  // Optional: change status
             })
-            .eq('ticket_id', ticketId)
+            .eq('ticket_id', ticketId)  // ✅ Check column name
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {
+            console.error('Update error:', error);
+            throw error;
+        }
 
+        console.log('✅ Ticket updated:', data);
         res.json({ success: true, ticket: data });
 
     } catch (error) {
+        console.error('Mark used error:', error);
         res.status(500).json({ error: error.message });
     }
 };
