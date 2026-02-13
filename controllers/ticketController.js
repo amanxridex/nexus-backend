@@ -1,3 +1,11 @@
+const { createClient } = require('@supabase/supabase-js');
+
+// ✅ ADD: Initialize Supabase client
+const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 // Mock database - replace with real DB
 let tickets = [];
 
@@ -56,8 +64,6 @@ exports.buyTicket = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Ticket not available' });
     }
     
-    // Process payment logic here
-    
     ticket.status = 'sold';
     ticket.buyerId = buyerId;
     ticket.soldAt = new Date();
@@ -73,66 +79,77 @@ exports.buyTicket = async (req, res) => {
   }
 };
 
-// Get ticket by ticket ID (for QR scanner)
+// ✅ FIXED: Get ticket by ticket ID (for QR scanner)
 exports.getTicketById = async (req, res) => {
     try {
         const { ticketId } = req.params;
         
+        console.log('🔍 Fetching ticket:', ticketId);
+
         const { data: ticket, error } = await supabase
             .from('tickets')
             .select(`
                 *,
-                users:user_id (name, email, full_name)
+                bookings:booking_id (
+                    attendee_name,
+                    attendee_email,
+                    attendee_phone
+                )
             `)
             .eq('ticket_id', ticketId)
             .single();
 
-        if (error || !ticket) {
+        if (error) {
+            console.error('❌ Supabase error:', error);
             return res.status(404).json({ error: 'Ticket not found' });
         }
 
-        // ✅ Return all possible name fields
+        if (!ticket) {
+            return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        console.log('✅ Ticket found:', ticket);
+
+        // ✅ Get attendee name from tickets table or bookings
+        const attendeeName = ticket.attendee_name 
+            || ticket.bookings?.attendee_name 
+            || 'Guest';
+
         res.json({
             ticket_id: ticket.ticket_id,
-            attendee_name: ticket.attendee_name,  // Main field
-            name: ticket.name,  // Backup
-            user_name: ticket.users?.name,  // From users table
-            user_full_name: ticket.users?.full_name,
+            attendee_name: attendeeName,
             fest_id: ticket.fest_id,
             status: ticket.status,
             used_at: ticket.used_at,
-            // Debug: return raw data
-            _debug: {
-                raw_attendee_name: ticket.attendee_name,
-                user_data: ticket.users
-            }
+            booking_id: ticket.booking_id
         });
 
     } catch (error) {
+        console.error('💥 Server error:', error);
         res.status(500).json({ error: error.message });
     }
 };
 
-// ticketController.js - markTicketUsed function
+// ✅ FIXED: Mark ticket as used
 exports.markTicketUsed = async (req, res) => {
     try {
         const { ticketId } = req.params;
         const { used_at } = req.body;
         
-        console.log('Marking ticket used:', ticketId);
+        console.log('📝 Marking ticket used:', ticketId);
         
         const { data, error } = await supabase
             .from('tickets')
             .update({ 
                 used_at: used_at || new Date().toISOString(),
-                status: 'used'  // Optional: change status
+                status: 'used'
             })
-            .eq('ticket_id', ticketId)  // ✅ Check column name
+            .eq('ticket_id', ticketId)
             .select()
             .single();
 
         if (error) {
-            console.error('Update error:', error);
+            console.error('❌ Update error:', error);
             throw error;
         }
 
@@ -140,15 +157,17 @@ exports.markTicketUsed = async (req, res) => {
         res.json({ success: true, ticket: data });
 
     } catch (error) {
-        console.error('Mark used error:', error);
+        console.error('💥 Mark used error:', error);
         res.status(500).json({ error: error.message });
     }
 };
 
-// Verify ticket (for QR scanner)
+// ✅ FIXED: Verify ticket
 exports.verifyTicket = async (req, res) => {
     try {
         const { ticketId, festId } = req.body;
+        
+        console.log('🔍 Verifying ticket:', { ticketId, festId });
         
         const { data: ticket, error } = await supabase
             .from('tickets')
@@ -162,7 +181,11 @@ exports.verifyTicket = async (req, res) => {
         }
 
         if (ticket.used_at) {
-            return res.json({ valid: false, error: 'Already used' });
+            return res.json({ 
+                valid: false, 
+                error: 'Already used',
+                used_at: ticket.used_at 
+            });
         }
 
         res.json({ 
@@ -173,6 +196,7 @@ exports.verifyTicket = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('💥 Verify error:', error);
         res.status(500).json({ error: error.message });
     }
 };
