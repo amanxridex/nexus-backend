@@ -185,6 +185,7 @@ exports.verifyPayment = async (req, res) => {
 };
 
 // Get user's tickets
+// Get user's tickets
 exports.getMyTickets = async (req, res) => {
     try {
         const userId = req.user.uid;
@@ -193,11 +194,14 @@ exports.getMyTickets = async (req, res) => {
             .from('tickets')
             .select(`
                 *,
+                attendee_name,  // ✅ Explicitly include
                 bookings (
+                    booking_id,
                     event_name,
                     college_name,
-                    ticket_price,
-                    total_amount,
+                    attendee_name as booking_attendee_name,  // ✅ Alias to avoid conflict
+                    attendee_email,
+                    attendee_phone,
                     created_at
                 )
             `)
