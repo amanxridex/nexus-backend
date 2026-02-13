@@ -21,12 +21,14 @@ app.use(cors({
   origin: [
     'http://localhost:3000', 
     'http://127.0.0.1:5500',
-    'https://reseat.vercel.app', // Your actual frontend
+    'https://reseat.vercel.app',
     'https://your-frontend.vercel.app',
-    'https://nexus-app.vercel.app'
+    'https://nexus-app.vercel.app',
+    // ✅ Host backend (for API calls)
+    'https://nexus-host-backend.onrender.com'
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 

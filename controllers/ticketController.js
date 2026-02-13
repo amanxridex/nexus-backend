@@ -72,3 +72,88 @@ exports.buyTicket = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// Get ticket by ticket ID (for QR scanner)
+exports.getTicketById = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        
+        const { data: ticket, error } = await supabase
+            .from('tickets')
+            .select('*, users(name, email)')
+            .eq('ticket_id', ticketId)
+            .single();
+
+        if (error || !ticket) {
+            return res.status(404).json({ error: 'Ticket not found' });
+        }
+
+        res.json({
+            ticket_id: ticket.ticket_id,
+            attendee_name: ticket.attendee_name || ticket.users?.name || 'Guest',
+            fest_id: ticket.fest_id,
+            status: ticket.status,
+            used_at: ticket.used_at
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Mark ticket as used (after scan)
+exports.markTicketUsed = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { used_at, scanned_by } = req.body;
+        
+        const { data, error } = await supabase
+            .from('tickets')
+            .update({ 
+                used_at: used_at || new Date().toISOString(),
+                status: 'used'
+            })
+            .eq('ticket_id', ticketId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        res.json({ success: true, ticket: data });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Verify ticket (for QR scanner)
+exports.verifyTicket = async (req, res) => {
+    try {
+        const { ticketId, festId } = req.body;
+        
+        const { data: ticket, error } = await supabase
+            .from('tickets')
+            .select('*')
+            .eq('ticket_id', ticketId)
+            .eq('fest_id', festId)
+            .single();
+
+        if (error || !ticket) {
+            return res.json({ valid: false, error: 'Ticket not found' });
+        }
+
+        if (ticket.used_at) {
+            return res.json({ valid: false, error: 'Already used' });
+        }
+
+        res.json({ 
+            valid: true, 
+            ticket_id: ticket.ticket_id,
+            attendee_name: ticket.attendee_name,
+            fest_id: ticket.fest_id
+        });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
