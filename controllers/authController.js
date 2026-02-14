@@ -64,6 +64,56 @@ exports.logout = async (req, res) => {
   }
 };
 
+// ✅ NEW: Check if user session is valid (for frontend auth check)
+exports.checkUser = async (req, res) => {
+  try {
+    // req.user is set by verifySession middleware
+    if (!req.user || !req.user.uid) {
+      return res.status(401).json({ 
+        success: false, 
+        exists: false,
+        error: 'Invalid session' 
+      });
+    }
+
+    // Optional: Verify user exists in database
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, firebase_uid, email, full_name, phone')
+      .eq('firebase_uid', req.user.uid)
+      .single();
+
+    if (error || !user) {
+      // Session valid but no profile yet
+      return res.json({ 
+        success: true, 
+        exists: false,
+        uid: req.user.uid,
+        message: 'Session valid but profile not complete'
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      exists: true,
+      user: {
+        uid: user.firebase_uid,
+        email: user.email,
+        name: user.full_name,
+        phone: user.phone
+      }
+    });
+
+  } catch (error) {
+    console.error('Check user error:', error);
+    res.status(500).json({ 
+      success: false, 
+      exists: false,
+      error: 'Failed to check session' 
+    });
+  }
+};
+
 // ✅ UPDATED: Verify auth using cookie instead of Firebase token
 exports.verifyAuth = async (req, res) => {
   try {

@@ -3,6 +3,9 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { verifyToken, verifySession } = require('../middleware/authMiddleware');
 
+// ✅ NEW: Check session endpoint (for frontend auth check)
+router.get('/check', verifySession, authController.checkUser);
+
 // ✅ NEW: Create session (login)
 router.post('/session', authController.createSession);
 
