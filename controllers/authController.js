@@ -1,7 +1,10 @@
 const { auth } = require('../config/firebase');
-const jwt = require('jsonwebtoken'); // ✅ ADDED
+const jwt = require('jsonwebtoken');
 
-// ✅ NEW: Create session cookie after Firebase login
+// ✅ ADDED: Import Supabase
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
 // ✅ NEW: Create session cookie after Firebase login
 exports.createSession = async (req, res) => {
   try {
@@ -25,9 +28,9 @@ exports.createSession = async (req, res) => {
     // ✅ FIXED: Cookie settings for cross-origin
     res.cookie('nexus_session', sessionToken, {
       httpOnly: true,
-      secure: true, // ✅ Render uses HTTPS
-      sameSite: 'none', // ✅ CHANGED: 'strict' → 'none' for cross-origin
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      secure: true,
+      sameSite: 'none',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
       path: '/'
     });
     
@@ -53,8 +56,8 @@ exports.logout = async (req, res) => {
   try {
     res.clearCookie('nexus_session', {
       httpOnly: true,
-      secure: true, // ✅ Match create settings
-      sameSite: 'none', // ✅ Match create settings
+      secure: true,
+      sameSite: 'none',
       path: '/'
     });
     
@@ -68,7 +71,6 @@ exports.logout = async (req, res) => {
 // ✅ NEW: Check if user session is valid (for frontend auth check)
 exports.checkUser = async (req, res) => {
   try {
-    // req.user is set by verifySession middleware
     if (!req.user || !req.user.uid) {
       return res.status(401).json({ 
         success: false, 
@@ -77,7 +79,6 @@ exports.checkUser = async (req, res) => {
       });
     }
 
-    // Optional: Verify user exists in database
     const { data: user, error } = await supabase
       .from('users')
       .select('id, firebase_uid, email, full_name, phone')
@@ -85,7 +86,6 @@ exports.checkUser = async (req, res) => {
       .single();
 
     if (error || !user) {
-      // Session valid but no profile yet
       return res.json({ 
         success: true, 
         exists: false,
@@ -115,10 +115,10 @@ exports.checkUser = async (req, res) => {
   }
 };
 
-// ✅ UPDATED: Verify auth using cookie instead of Firebase token
+// ✅ UPDATED: Verify auth using cookie
 exports.verifyAuth = async (req, res) => {
   try {
-    const user = req.user; // Set by verifySession middleware
+    const user = req.user;
     
     res.status(200).json({
       success: true,
@@ -139,7 +139,7 @@ exports.verifyAuth = async (req, res) => {
   }
 };
 
-// Sync user (same as before)
+// Sync user
 exports.syncUser = async (req, res) => {
   try {
     const { uid, phone, email, name, photoURL } = req.user;
@@ -158,7 +158,7 @@ exports.syncUser = async (req, res) => {
   }
 };
 
-// Get all users (same as before)
+// Get all users
 exports.getAllUsers = async (req, res) => {
   try {
     const listUsers = await auth.listUsers();
