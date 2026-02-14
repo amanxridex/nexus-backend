@@ -1,17 +1,17 @@
-    const express = require('express');
-    const router = express.Router();
-    const authController = require('../controllers/authController');
-    const { verifyToken } = require('../middleware/authMiddleware');
+const express = require('express');
+const router = express.Router();
+const authController = require('../controllers/authController');
+const { verifyToken, verifySession } = require('../middleware/authMiddleware');
 
-    // Public routes
-    // POST /api/auth/verify - Verify Firebase token from frontend
-    router.post('/verify', verifyToken, authController.verifyAuth);
+// ✅ NEW: Create session (login)
+router.post('/session', authController.createSession);
 
-    // POST /api/auth/sync - Sync user data after signup
-    router.post('/sync', verifyToken, authController.syncUser);
+// ✅ NEW: Logout
+router.post('/logout', verifySession, authController.logout);
 
-    // Protected admin routes
-    // GET /api/auth/users - Get all users (admin only)
-    router.get('/users', verifyToken, authController.getAllUsers);
+// Protected routes (now use verifySession instead of verifyToken)
+router.post('/verify', verifySession, authController.verifyAuth);
+router.post('/sync', verifySession, authController.syncUser);
+router.get('/users', verifySession, authController.getAllUsers);
 
-    module.exports = router;
+module.exports = router;

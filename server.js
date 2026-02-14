@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser'); // ✅ ADDED
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -24,13 +25,15 @@ app.use(cors({
     'https://reseat.vercel.app',
     'https://your-frontend.vercel.app',
     'https://nexus-app.vercel.app',
-    // ✅ Host backend (for API calls)
     'https://nexus-host-backend.onrender.com'
   ],
-  credentials: true,
+  credentials: true, // ✅ IMPORTANT: Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// ✅ ADDED: Cookie parser
+app.use(cookieParser());
 
 // Logging
 app.use(morgan('dev'));
@@ -73,5 +76,4 @@ app.listen(PORT, () => {
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-// Export for Vercel serverless
 module.exports = app;

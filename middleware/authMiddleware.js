@@ -1,6 +1,40 @@
 const { auth } = require('../config/firebase');
+const jwt = require('jsonwebtoken'); // ✅ ADDED
 
-// Verify Firebase ID Token
+// ✅ NEW: Verify session cookie (replaces Firebase token verification)
+const verifySession = async (req, res, next) => {
+  try {
+    const token = req.cookies.nexus_session;
+    
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Access denied. No session found.' 
+      });
+    }
+
+    // Verify JWT session token
+    const decoded = jwt.verify(token, process.env.COOKIE_SECRET);
+    
+    req.user = {
+      uid: decoded.uid,
+      phone: decoded.phone || null,
+      email: decoded.email || null,
+      name: decoded.name || null
+    };
+    
+    next();
+    
+  } catch (error) {
+    console.error('Session verification failed:', error);
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Invalid or expired session' 
+    });
+  }
+};
+
+// ✅ OLD: Keep for backward compatibility during transition
 const verifyToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -13,11 +47,8 @@ const verifyToken = async (req, res, next) => {
     }
 
     const idToken = authHeader.split('Bearer ')[1];
-    
-    // Verify token with Firebase
     const decodedToken = await auth.verifyIdToken(idToken);
     
-    // Attach user info to request
     req.user = {
       uid: decodedToken.uid,
       phone: decodedToken.phone_number || null,
@@ -37,17 +68,4 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Optional: Check if user exists in database
-const checkUserExists = async (req, res, next) => {
-  try {
-    // You can add database check here
-    // const user = await User.findOne({ uid: req.user.uid });
-    // if (!user) return res.status(404).json({ message: 'User not found' });
-    
-    next();
-  } catch (error) {
-    return res.status(500).json({ message: 'Server error' });
-  }
-};
-
-module.exports = { verifyToken, checkUserExists };
+module.exports = { verifyToken, verifySession };
