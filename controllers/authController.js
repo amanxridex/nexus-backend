@@ -2,9 +2,10 @@ const { auth } = require('../config/firebase');
 const jwt = require('jsonwebtoken'); // ✅ ADDED
 
 // ✅ NEW: Create session cookie after Firebase login
+// ✅ NEW: Create session cookie after Firebase login
 exports.createSession = async (req, res) => {
   try {
-    const { idToken } = req.body; // Firebase ID token from frontend
+    const { idToken } = req.body;
     
     // Verify Firebase token
     const decodedToken = await auth.verifyIdToken(idToken);
@@ -21,11 +22,11 @@ exports.createSession = async (req, res) => {
       { expiresIn: '30d' }
     );
     
-    // Set HTTP Only cookie
+    // ✅ FIXED: Cookie settings for cross-origin
     res.cookie('nexus_session', sessionToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true, // ✅ Render uses HTTPS
+      sameSite: 'none', // ✅ CHANGED: 'strict' → 'none' for cross-origin
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       path: '/'
     });
@@ -52,8 +53,8 @@ exports.logout = async (req, res) => {
   try {
     res.clearCookie('nexus_session', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true, // ✅ Match create settings
+      sameSite: 'none', // ✅ Match create settings
       path: '/'
     });
     
