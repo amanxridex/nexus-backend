@@ -10,6 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const bookingRoutes = require('./routes/bookingRoutes');
+const walletRoutes = require('./routes/walletRoutes'); // ✅ ADDED
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,8 +57,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/booking', bookingRoutes);
+app.use('/api/wallet', walletRoutes); // ✅ ADDED
 
-console.log('✅ Routes loaded: /api/auth, /api/users, /api/tickets, /api/booking');
+console.log('✅ Routes loaded: /api/auth, /api/users, /api/tickets, /api/booking, /api/wallet');
 
 // 404 handler
 app.use((req, res) => {
