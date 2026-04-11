@@ -8,7 +8,7 @@ if (!hostDbUrl || !hostDbKey) {
     console.error("CRITICAL ERROR: HOST_DB_URL or HOST_DB_SERVICE_ROLE_KEY missing in environment.");
 }
 
-const supabase = createClient(hostDbUrl || 'dummy', hostDbKey || 'dummy');
+const supabase = createClient(hostDbUrl || 'https://dummy.supabase.co', hostDbKey || 'dummy');
 
 exports.getApprovedHomes = async (req, res) => {
     try {
