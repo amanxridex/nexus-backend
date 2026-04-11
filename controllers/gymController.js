@@ -1,8 +1,20 @@
-const { hostDb } = require('../config/supabase');
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Host Supabase Client where gyms live
+const hostDbUrl = process.env.HOST_DB_URL;
+const hostDbKey = process.env.HOST_DB_SERVICE_ROLE_KEY;
+
+if (!hostDbUrl || !hostDbKey) {
+    console.error("CRITICAL ERROR: HOST_DB_URL or HOST_DB_SERVICE_ROLE_KEY missing in environment.");
+}
+
+const supabase = createClient(hostDbUrl || 'https://dummy.supabase.co', hostDbKey || 'dummy');
 
 exports.getGyms = async (req, res) => {
   try {
-    const { data: gyms, error } = await hostDb
+    if (!hostDbUrl) throw new Error("HOST_DB is not configured on this server");
+
+    const { data: gyms, error } = await supabase
       .from('gyms')
       .select(`
         *,
