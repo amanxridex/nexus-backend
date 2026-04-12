@@ -18,9 +18,12 @@ const restaurantRoutes = require('./routes/restaurantRoutes'); // ✅ ADDED
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
+const { globalLimiter } = require('./middleware/rateLimiter');
+app.use(globalLimiter);
 
 // CORS - Allow your frontend domain
 app.use(cors({
