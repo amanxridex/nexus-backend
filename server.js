@@ -14,6 +14,7 @@ const walletRoutes = require('./routes/walletRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const homeRoutes = require('./routes/homeRoutes');
 const gymRoutes = require('./routes/gymRoutes');
+const restaurantRoutes = require('./routes/restaurantRoutes'); // ✅ ADDED
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,8 +65,9 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/homes', homeRoutes);
 app.use('/api/gyms', gymRoutes);
+app.use('/api/restaurants', restaurantRoutes);
 
-console.log('✅ Routes loaded: /api/auth, /api/users, /api/tickets, /api/booking, /api/wallet, /api/notifications, /api/homes, /api/gyms');
+console.log('✅ Routes loaded: /api/auth, /api/users, /api/tickets, /api/booking, /api/wallet, /api/notifications, /api/homes, /api/gyms, /api/restaurants');
 
 // 404 handler
 app.use((req, res) => {
