@@ -1,4 +1,7 @@
-const supabase = require('../config/database');
+const { createClient } = require('@supabase/supabase-js');
+const hostDbUrl = process.env.HOST_DB_URL;
+const hostDbKey = process.env.HOST_DB_SERVICE_ROLE_KEY;
+const supabase = createClient(hostDbUrl || 'https://dummy.supabase.co', hostDbKey || 'dummy');
 
 exports.getRestaurants = async (req, res) => {
     try {
