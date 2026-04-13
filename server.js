@@ -54,13 +54,26 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    service: 'Nexus Backend'
-  });
+const { ticketQueue } = require('./utils/queue');
+const cacheMiddleware = require('./middleware/cacheMiddleware');
+
+// Master Health & Telemetry Beacon (Command Center API)
+app.get('/api/health', async (req, res) => {
+  try {
+      const queueCounts = await ticketQueue.getJobCounts();
+      
+      res.json({ 
+        status: 'OK', 
+        timestamp: new Date().toISOString(),
+        service: 'Nexus Backend',
+        system: loadShedder.getShedStats ? loadShedder.getShedStats() : {},
+        cache: cacheMiddleware.getCacheStats ? cacheMiddleware.getCacheStats() : { hits: 0, misses: 0 },
+        breaker: cacheMiddleware.getBreakerState ? (cacheMiddleware.getBreakerState() ? 'OPEN' : 'CLOSED') : 'UNKNOWN',
+        queue: queueCounts
+      });
+  } catch (e) {
+      res.status(500).json({ error: e.message });
+  }
 });
 
 // API Routes

@@ -7,6 +7,7 @@ let currentCpuUsage = 0;
 let previousCpuTime = process.cpuUsage();
 let previousTime = process.uptime();
 let activeRequests = 0;
+let droppedRequests = 0;
 const MAX_CONCURRENT = 800; // Strict Global Threshold
 
 setInterval(() => {
@@ -33,6 +34,7 @@ const loadShedder = (req, res, next) => {
 
     // 0. Global Concurrency Cap (Prevent V8 Heap Crash)
     if (activeRequests >= MAX_CONCURRENT && !isCritical) {
+        droppedRequests++;
         console.warn(`[🛑 CONCURRENCY CAP] Denied ${req.originalUrl}. Active connections: ${activeRequests}`);
         return res.status(503).json({ status: 'busy', retry: true, message: 'Server at maximum capacity.' });
     }
@@ -50,6 +52,7 @@ const loadShedder = (req, res, next) => {
 
     // 2. Standard Level (Shed non-critical feeds to free resources instantly)
     if (currentCpuUsage > 75 || eventLoopLag > 80) {
+        droppedRequests++;
         console.warn(`[🛡️ SHED] Dropping ${req.originalUrl} | CPU: ${currentCpuUsage.toFixed(1)}% | Lag: ${eventLoopLag.toFixed(1)}ms`);
         
         // Let caching layer potentially serve this if possible, otherwise hard 503
@@ -68,5 +71,12 @@ const loadShedder = (req, res, next) => {
     res.on('finish', () => activeRequests--);
     next();
 };
+
+loadShedder.getShedStats = () => ({
+    droppedRequests,
+    activeRequests,
+    cpuUsage: currentCpuUsage.toFixed(1),
+    eventLoopLag: (loopMonitor.mean / 1e6).toFixed(1)
+});
 
 module.exports = { loadShedder };

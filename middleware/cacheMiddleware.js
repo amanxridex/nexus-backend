@@ -85,4 +85,12 @@ const cacheMiddleware = (options = { EX: 300 }) => {
     };
 };
 
+// --- TELEMETRY EXPORTS ---
+let cacheStats = { hits: 0, misses: 0 };
+let manualBreakerOpen = false;
+
+cacheMiddleware.getCacheStats = () => cacheStats;
+cacheMiddleware.getBreakerState = () => manualBreakerOpen ? true : isCircuitOpen();
+cacheMiddleware.forceBreakerOpen = (state) => { manualBreakerOpen = state; return manualBreakerOpen; };
+
 module.exports = cacheMiddleware;
