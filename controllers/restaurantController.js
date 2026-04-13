@@ -21,11 +21,18 @@ exports.getRestaurants = async (req, res) => {
             cuisines: rest.cuisines || "North Indian, Continental",
             costForTwo: rest.cost_for_two || "1,200",
             location: rest.address ? rest.address.substring(0, 15) : "City Center",
-            distance: (Math.random() * 5 + 0.5).toFixed(1) + " km", // Mocking distance since we don't have geo-coords
+            fullAddress: rest.address || "City Center",
+            distance: (Math.random() * 5 + 0.5).toFixed(1) + " km", 
             time: Math.floor(Math.random() * 45 + 15) + " mins",
             images: rest.images && rest.images.length > 0 ? rest.images : [
                 "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
             ],
+            menuImages: rest.menu_images && rest.menu_images.length > 0 ? rest.menu_images : [],
+            about: rest.about || "Experience fine dining with top-tier cuisines.",
+            phone: rest.phone || "No contact provided",
+            mapLink: rest.location_url || "#",
+            timings: `${rest.open_time || '10:00 AM'} - ${rest.close_time || '11:00 PM'}`,
+            fssai: rest.fssai || "Pending Verification",
             tags: {
                 promoted: idx === 0,
                 discount: "Flat 20% OFF",
