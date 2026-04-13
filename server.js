@@ -87,10 +87,18 @@ app.use((req, res) => {
 // Global error handler
 app.use(errorHandler);
 
+// Global Auto-Cache Refresher Daemon (4 minute interval loops)
+const { startContinuousWarmup } = require('./utils/cacheRefresher');
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Nexus Backend running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  // Begin continuous refresh sequence preventing cache cold drops globally
+  if (process.env.NODE_ENV !== 'test') {
+      startContinuousWarmup();
+  }
 });
 
 module.exports = app;

@@ -49,34 +49,35 @@ exports.createTicket = async (req, res) => {
   }
 };
 
+const { safeAddTicketJob } = require('../utils/queue');
+
 // Buy ticket (protected)
 exports.buyTicket = async (req, res) => {
-  try {
-    const { ticketId } = req.params;
-    const buyerId = req.user.uid;
-    
-    const ticket = tickets.find(t => t.id === ticketId);
-    if (!ticket) {
-      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    try {
+      const { ticketId } = req.params;
+      const buyerId = req.user.uid;
+      
+      // Decouple execution: The API immediately accepts the payment verification
+      // and natively offloads the heavy DB writes + PDF physical creations to BullMQ.
+      await safeAddTicketJob('process_ticket_purchase', {
+          ticketId,
+          buyerId,
+          timestamp: Date.now()
+      });
+      
+      // Returns practically instantly against the V8 Thread.
+      res.status(200).json({
+        success: true,
+        message: 'Payment received successfully. Your ticket is currently generating in the background and will appear in your wallet momentarily.',
+        status: 'processing'
+      });
+      
+    } catch (error) {
+      if (error.message.includes('QUEUE_OVERFLOW')) {
+          return res.status(503).json({ success: false, message: 'Ticketing service heavily overloaded. Payment not processed. Try again soon.' });
+      }
+      res.status(500).json({ success: false, message: error.message });
     }
-    
-    if (ticket.status !== 'available') {
-      return res.status(400).json({ success: false, message: 'Ticket not available' });
-    }
-    
-    ticket.status = 'sold';
-    ticket.buyerId = buyerId;
-    ticket.soldAt = new Date();
-    
-    res.status(200).json({
-      success: true,
-      message: 'Ticket purchased successfully',
-      ticket
-    });
-    
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
 };
 
 // ✅ FIXED: Get ticket by ticket ID (for QR scanner)
