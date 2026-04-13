@@ -6,6 +6,8 @@ loopMonitor.enable();
 let currentCpuUsage = 0;
 let previousCpuTime = process.cpuUsage();
 let previousTime = process.uptime();
+let activeRequests = 0;
+const MAX_CONCURRENT = 800; // Strict Global Threshold
 
 setInterval(() => {
     const currentCpu = process.cpuUsage(previousCpuTime);
@@ -29,12 +31,20 @@ const loadShedder = (req, res, next) => {
                        req.originalUrl.includes('/buy') || 
                        req.originalUrl.includes('/verify');
 
+    // 0. Global Concurrency Cap (Prevent V8 Heap Crash)
+    if (activeRequests >= MAX_CONCURRENT && !isCritical) {
+        console.warn(`[🛑 CONCURRENCY CAP] Denied ${req.originalUrl}. Active connections: ${activeRequests}`);
+        return res.status(503).json({ status: 'busy', retry: true, message: 'Server at maximum capacity.' });
+    }
+
     // 1. Critical Level (Only shed if Docker container is literally about to crash)
     if (isCritical) {
         if (currentCpuUsage > 95 || eventLoopLag > 200) {
             console.warn(`[🔥 CRIT SHED] Blocking Financial API: CPU ${currentCpuUsage.toFixed(1)}% | Lag ${eventLoopLag.toFixed(1)}ms`);
             return res.status(503).json({ status: 'busy', retry: true, message: 'Payment gateway overloaded. Please try again in 30 seconds.' });
         }
+        activeRequests++;
+        res.on('finish', () => activeRequests--);
         return next();
     }
 
@@ -54,6 +64,8 @@ const loadShedder = (req, res, next) => {
         console.log(`[⚠️ WARNING] Event Loop lagging: ${eventLoopLag.toFixed(1)}ms`);
     }
 
+    activeRequests++;
+    res.on('finish', () => activeRequests--);
     next();
 };
 

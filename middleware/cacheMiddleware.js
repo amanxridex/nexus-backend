@@ -44,8 +44,8 @@ const cacheMiddleware = (options = { EX: 300 }) => {
                     console.log(`[🛡️ BREAKER OPEN] Bypassing DB -> Serving Stale Cache: ${key}`);
                     return res.status(200).json({ status: 'degraded', data: JSON.parse(cachedData).data || JSON.parse(cachedData) });
                 } else {
-                    console.error(`[🚨 BREAKER OPEN] No cache available for ${key}. Dropping request.`);
-                    return res.status(503).json({ status: 'busy', retry: true, message: 'Databases overloaded. Please try again.' });
+                    console.error(`[🚨 BREAKER OPEN] Cache Empty. Enforcing degraded empty response for ${key}`);
+                    return res.status(200).json({ status: 'degraded', data: [] });
                 }
             }
 
