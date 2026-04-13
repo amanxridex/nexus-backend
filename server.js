@@ -20,6 +20,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
+// Chaos Engine V2: Physical Load Shedding & Priority Routing
+const { loadShedder } = require('./middleware/loadShedder');
+app.use(loadShedder);
+
 // Security middleware
 app.use(helmet());
 const { globalLimiter } = require('./middleware/rateLimiter');
