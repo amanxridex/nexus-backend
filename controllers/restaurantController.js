@@ -8,7 +8,7 @@ exports.getRestaurants = async (req, res) => {
         const { data, error } = await supabase
             .from('restaurants')
             .select(`*`)
-            .eq('status', 'published')
+            .in('status', ['published', 'active'])
             .order('rating', { ascending: false }); // Sort by rating for Dineout
 
         if (error) throw error;
