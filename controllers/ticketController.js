@@ -81,6 +81,27 @@ exports.buyTicket = async (req, res) => {
 };
 
 // ✅ FIXED: Get ticket by ticket ID (for QR scanner)
+exports.getTicketStatus = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const buyerId = req.user.uid;
+
+        const { data, error } = await supabase
+            .from('bookings')
+            .select('status, ticket_url')
+            .eq('ticket_id', ticketId)
+            .eq('firebase_uid', buyerId)
+            .single();
+
+        if (error || !data) {
+            return res.status(200).json({ status: 'processing', message: 'Ticket is currently queued for generation.' });
+        }
+
+        res.status(200).json({ status: data.status || 'completed', url: data.ticket_url || null });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+};
 exports.getTicketById = async (req, res) => {
     try {
         const { ticketId } = req.params;

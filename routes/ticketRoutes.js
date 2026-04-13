@@ -14,6 +14,7 @@ router.get('/by-ticket-id/:ticketId', strictLimiter, ticketController.getTicketB
 router.patch('/:ticketId/mark-used', strictLimiter, ticketController.markTicketUsed);
 
 // Protected routes
+router.get('/status/:ticketId', strictLimiter, verifyToken, ticketController.getTicketStatus);
 router.post('/', strictLimiter, verifyToken, requireIdempotency({ expireMs: 300000 }), ticketController.createTicket);
 router.post('/:ticketId/buy', strictLimiter, verifyToken, requireIdempotency({ expireMs: 300000 }), ticketController.buyTicket);
 
