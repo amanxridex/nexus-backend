@@ -37,7 +37,8 @@ app.use(cors({
     'https://reseat.vercel.app',
     'https://your-frontend.vercel.app',
     'https://nexus-app.vercel.app',
-    'https://nexus-host-backend.onrender.com'
+    'https://nexus-host-backend.onrender.com',
+    'https://nexushandler.vercel.app'
   ],
   credentials: true, // ✅ IMPORTANT: Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
