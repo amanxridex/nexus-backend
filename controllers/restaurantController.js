@@ -49,3 +49,27 @@ exports.getRestaurants = async (req, res) => {
         res.status(500).json({ success: false, error: 'Failed to fetch restaurants' });
     }
 };
+
+exports.trackMetrics = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { type } = req.body;
+
+        if (!['impression', 'click'].includes(type)) {
+            return res.status(400).json({ success: false, error: 'Invalid metric type' });
+        }
+
+        const { error } = await supabase.rpc('increment_restaurant_metric', {
+            restaurant_id: id,
+            metric_type: type
+        });
+
+        if (error) throw error;
+
+        res.json({ success: true, message: 'Metric tracked successfully' });
+    } catch (error) {
+        // Failing silently is acceptable for analytics since we don't want to break UX
+        console.error(`[Analytics Error] Failed tracking ${req.body?.type} for ${req.params?.id}:`, error.message);
+        res.status(500).json({ success: false, error: 'Internal tracking error' });
+    }
+};
